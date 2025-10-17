@@ -31,9 +31,9 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: airflow_reddit
-      POSTGRES_PORT: 5432
+      POSTGRES_PORT: 5433
     ports:
-      - "5432:5432"
+      - "5433:5432"
 
   redis:
     image: redis:latest

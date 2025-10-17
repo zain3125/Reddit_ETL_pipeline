@@ -10,7 +10,10 @@ env/
 ENV/
 
 # ===== Logs & Temp Files =====
+logs/
 *.log
 *.tmp
 *.bak
 
+# ==== Config Files =====
+config/
