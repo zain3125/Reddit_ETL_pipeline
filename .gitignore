@@ -1,0 +1,16 @@
+# ===== Python =====
+__pycache__/
+*.egg-info/
+dist/
+build/
+# ===== Virtual Environment =====
+venv/
+env/
+.venv/
+ENV/
+
+# ===== Logs & Temp Files =====
+*.log
+*.tmp
+*.bak
+
