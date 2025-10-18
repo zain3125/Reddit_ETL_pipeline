@@ -13,11 +13,12 @@ def connect_to_reddit(api_key, api_secret, user_agent):
         print(f"Error connecting to Reddit: {e}")    
 
 # Function to extract Reddit data
-def extract_reddit_posts(reddit_instance: Reddit, subreddit: str, time_fillter: str, limit=None):
+def extract_reddit_posts(reddit_instance: Reddit, subreddit: str, time_filter: str, limit=None):
     subreddit = reddit_instance.subreddit(subreddit)
-    posts = subreddit.top(time_filter=time_fillter, limit=limit)
+    posts = subreddit.top(time_filter=time_filter, limit=limit)
 
     posts_lists = []
 
-    print(posts)
-    #for post in posts:
+    for post in posts:
+        post_dict = vars(post)
+        print(post_dict)

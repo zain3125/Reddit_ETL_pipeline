@@ -2,7 +2,6 @@ from utils.constants import CLIENT_ID, SECRET, USER_AGENT
 from etls.reddit_etl import connect_to_reddit, extract_reddit_posts
 
 def extract_reddit_data(file_name: str, subreddit: str, time_filter='day', limit=None):
-    pass
     # Connect to Reddit API
     instance = connect_to_reddit(CLIENT_ID, SECRET, USER_AGENT)
     
