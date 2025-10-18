@@ -18,11 +18,12 @@ x-airflow-common:
     - ./plugins:/opt/airflow/plugins
     - ./tests:/opt/airflow/tests
     - ./utils:/opt/airflow/utils
-   # - ./airflow.cfg:/opt/airflow/airflow.cfg
     - ./requirements.txt:/opt/airflow/requirements.txt
   depends_on:
-    - postgres
-    - redis
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_started
 
 services:
   postgres:
@@ -31,9 +32,12 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: airflow_reddit
-      POSTGRES_PORT: 5433
     ports:
       - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      retries: 5
 
   redis:
     image: redis:latest
@@ -43,7 +47,9 @@ services:
   airflow-init:
     <<: *airflow-common
     command: >
-      bash -c "pip install -r /opt/airflow/requirements.txt && airflow db init && airflow db upgrade && airflow users create --username admin --firstname admin --lastname admin --role Admin --email airflow@airflow.com --password admin"
+      bash -c "pip install -r /opt/airflow/requirements.txt && airflow db init &&
+               airflow db upgrade &&
+               airflow users create --username airflow --firstname admin --lastname admin --role Admin --email airflow@airflow.com --password airflow"
     restart: "no"
 
   airflow-webserver:
