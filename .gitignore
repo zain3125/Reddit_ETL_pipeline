@@ -14,6 +14,7 @@ logs/
 *.log
 *.tmp
 *.bak
+*.csv
 
 # ==== Config Files =====
 config/
