@@ -22,6 +22,7 @@ OUTPUT_PATH = parser.get('file_paths', 'output_path')
 POST_FIELDS = (
     'id',
     'title',
+    'selftext',
     'score',
     'num_comments',
     'author',
