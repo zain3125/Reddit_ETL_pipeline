@@ -1,5 +1,6 @@
-from utils.constants import CLIENT_ID, SECRET, USER_AGENT
-from etls.reddit_etl import connect_to_reddit, extract_reddit_posts
+import pandas as pd
+from utils.constants import CLIENT_ID, SECRET, USER_AGENT, OUTPUT_PATH
+from etls.reddit_etl import connect_to_reddit, extract_reddit_posts, transform_data, load_data_to_csv
 
 def extract_reddit_data(file_name: str, subreddit: str, time_filter='day', limit=None):
     # Connect to Reddit API
@@ -7,6 +8,13 @@ def extract_reddit_data(file_name: str, subreddit: str, time_filter='day', limit
     
     # Extract data from Reddit
     posts = extract_reddit_posts(instance, subreddit, time_filter, limit)
+    post_df = pd.DataFrame(posts)
+
     # Transform data as needed
+    post_df = transform_data(post_df)
 
     # Load data to the desired destination
+    file_path = (f"{OUTPUT_PATH}/{file_name}.csv")
+    load_data_to_csv(post_df, file_path)
+
+    return file_path
