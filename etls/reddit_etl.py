@@ -1,5 +1,6 @@
 import praw
 from praw import Reddit
+from utils.constants import POST_FIELDS
 
 # Function to connect to Reddit API
 def connect_to_reddit(api_key, api_secret, user_agent):
@@ -21,4 +22,8 @@ def extract_reddit_posts(reddit_instance: Reddit, subreddit: str, time_filter: s
 
     for post in posts:
         post_dict = vars(post)
-        print(post_dict)
+        
+        post = {key: post_dict[key] for key in POST_FIELDS}
+        posts_lists.append(post)
+
+    return posts_lists
