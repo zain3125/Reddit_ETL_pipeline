@@ -35,6 +35,14 @@ def transform_data(post_df: pd.DataFrame):
     post_df['created_utc'] = pd.to_datetime(post_df['created_utc'],unit='s')
     post_df['over_18'] = np.where((post_df['over_18']== True), True, False)
     post_df['author'] = post_df['author'].astype(str)
+    post_df['edited'] = post_df['edited'].where(post_df['edited'] == True, False)
+    post_df['num_comments'] = post_df['num_comments'].astype(int)
+    post_df['score'] = post_df['score'].astype(int)
+    post_df['selftext'] = post_df['selftext'].astype(str)
+    post_df['flair'] = post_df['link_flair_text'].where(post_df['link_flair_text'].notna(), None)
+    post_df = post_df.drop(columns=['link_flair_text'])
+    post_df['title'] = post_df['title'].astype(str)
+    post_df['subreddit_name_prefixed'] = post_df['subreddit_name_prefixed'].str.replace('r/', '', regex=False)
 
     return post_df
 

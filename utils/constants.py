@@ -21,7 +21,9 @@ OUTPUT_PATH = parser.get('file_paths', 'output_path')
 
 POST_FIELDS = (
     'id',
+    'subreddit_name_prefixed',
     'title',
+    'link_flair_text',
     'selftext',
     'score',
     'num_comments',
