@@ -29,8 +29,8 @@ extract_task = PythonOperator(
     task_id='extract_reddit_data',
     python_callable=extract_reddit_data,
     op_kwargs={
-        'file_name': f'reddit_posts_{file_postfix}.csv',
-        'subreddit': 'Egypt',
+        'file_name': f'reddit_posts_{file_postfix}',
+        'subreddits': ['Egypt', 'CAIRO', 'AlexandriaEgy', 'Masr'],
         'time_filter': 'day',
         'limit': 100,
         },
