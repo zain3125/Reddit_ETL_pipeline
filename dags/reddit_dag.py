@@ -7,7 +7,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from pipelines.reddit_pipeline import extract_reddit_data
+from pipelines.reddit_pipeline import extract_reddit_data, load_data_to_database
 default_args = {
     'owner': 'zain',
     'start_date': datetime(2025, 10, 17),

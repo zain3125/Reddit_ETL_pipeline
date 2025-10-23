@@ -16,6 +16,14 @@ DATABASE_PORT = parser.get('database', 'database_port')
 DATABASE_USER = parser.get('database', 'database_username')
 DATABASE_PASSWORD = parser.get('database', 'database_password')
 
+PG_PARAMS = {
+    "dbname": DATABASE_NAME,
+    "user": DATABASE_USER,
+    "password": DATABASE_PASSWORD,
+    "host": DATABASE_HOST,
+    "port": DATABASE_PORT
+}
+
 INPUT_PATH = parser.get('file_paths', 'input_path')
 OUTPUT_PATH = parser.get('file_paths', 'output_path')
 

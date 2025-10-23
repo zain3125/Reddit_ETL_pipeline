@@ -1,8 +1,9 @@
 import numpy as np
 import pandas as pd
+import psycopg2
 import praw
 from praw import Reddit
-from utils.constants import POST_FIELDS
+from utils.constants import POST_FIELDS, PG_PARAMS
 
 # Function to connect to Reddit API
 def connect_to_reddit(api_key, api_secret, user_agent):
@@ -50,3 +51,13 @@ def transform_data(post_df: pd.DataFrame):
 def load_data_to_csv(data: pd.DataFrame, path: str):
     data.to_csv(path, index=False)
 
+def get_db_connection():
+    try:
+        conn = psycopg2.connect(**PG_PARAMS)
+        return conn
+    except Exception as e:
+        print(f"Error connecting to the database: {e}")
+        return None
+
+def load_to_postgres():
+    pass

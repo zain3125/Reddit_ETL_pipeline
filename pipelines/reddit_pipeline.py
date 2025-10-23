@@ -25,3 +25,7 @@ def extract_reddit_data(file_name: str, subreddits: list, time_filter='day', lim
     load_data_to_csv(post_df, file_path)
 
     return file_path
+
+def load_data_to_database():
+    pass
+
