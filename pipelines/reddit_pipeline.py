@@ -1,4 +1,6 @@
+from datetime import datetime
 import pandas as pd
+import os
 from utils.constants import CLIENT_ID, SECRET, USER_AGENT, OUTPUT_PATH
 from etls.reddit_etl import (connect_to_reddit, extract_reddit_posts, transform_data, load_data_to_csv
                              ,get_db_connection, load_to_postgres)
@@ -51,3 +53,23 @@ def load_data_to_database(**context):
         return
 
     load_to_postgres(cur=cur, conn=conn, dataframe=df)
+
+def load_data_to_csv_task(**context):
+    json_data = context['ti'].xcom_pull(task_ids='extract_reddit_data')
+    if not json_data:
+        print("❌ No data received from extract_reddit_data.")
+        return
+
+    # Convert JSON back to DataFrame
+    df = pd.read_json(json_data)
+
+    # Define file path dynamically
+    file_path = f"{OUTPUT_PATH}/reddit_posts_{datetime.now().strftime('%Y%m%d')}.csv"
+
+    # Ensure the output directory exists
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+    # Save to CSV
+    df.to_csv(file_path, index=False)
+    print(f"✅ Data saved to CSV at: {file_path}")
+

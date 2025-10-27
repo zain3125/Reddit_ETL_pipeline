@@ -6,7 +6,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from pipelines.reddit_pipeline import extract_reddit_data, load_data_to_database
+from pipelines.reddit_pipeline import extract_reddit_data, load_data_to_database, load_data_to_csv_task
 default_args = {
     'owner': 'zain',
     'start_date': datetime(2025, 10, 17),
@@ -36,6 +36,14 @@ extract_task = PythonOperator(
     dag=dag,
 )
 
+load_to_csv_task = PythonOperator(
+    task_id='load_to_csv',
+    python_callable=load_data_to_csv_task,
+    provide_context=True,
+    op_kwargs={'file_path': f"/opt/airflow/data/output/reddit_posts_{datetime.now().strftime('%Y%m%d')}.csv"},
+    dag=dag,
+)
+
 load_task = PythonOperator(
     task_id='load_data_to_database',
     python_callable=load_data_to_database,
@@ -43,4 +51,4 @@ load_task = PythonOperator(
     dag=dag,
 )
 
-extract_task >> load_task
+extract_task >> [load_to_csv_task, load_task]
