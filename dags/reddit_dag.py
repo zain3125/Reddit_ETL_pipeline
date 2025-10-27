@@ -1,6 +1,5 @@
 from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
-
 from datetime import datetime 
 import os
 import sys
@@ -22,17 +21,26 @@ dag = DAG(
     schedule_interval='@daily',
     catchup=False,
     tags=['reddit', 'pipeline'],
-    )
+)
 
 # Extraction from reddit
 extract_task = PythonOperator(
     task_id='extract_reddit_data',
     python_callable=extract_reddit_data,
     op_kwargs={
-        'file_name': f'reddit_posts_{file_postfix}',
+        'file_name': f'reddit_posts_{datetime.now().strftime("%Y%m%d")}',
         'subreddits': ['Egypt', 'CAIRO', 'AlexandriaEgy', 'Masr'],
         'time_filter': 'day',
         'limit': 100,
-        },
-        dag=dag,
-    )
+    },
+    dag=dag,
+)
+
+load_task = PythonOperator(
+    task_id='load_data_to_database',
+    python_callable=load_data_to_database,
+    provide_context=True,
+    dag=dag,
+)
+
+extract_task >> load_task
