@@ -11,6 +11,9 @@ ENV/
 
 # ===== Logs & Temp Files =====
 logs/
+plugins/
+tests/
+data/
 *.log
 *.tmp
 *.bak
