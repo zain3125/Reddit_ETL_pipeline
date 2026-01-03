@@ -41,6 +41,7 @@ def transform_data(post_df: pd.DataFrame):
         'over_18', 'edited', 'spoiler', 'stickied'
     ]
     post_df['created_utc'] = pd.to_datetime(post_df['created_utc'], unit='s')
+    post_df['created_utc'] = post_df['created_utc'].dt.strftime('%Y-%m-%d %H:%M:%S')
     post_df['over_18'] = np.where((post_df['over_18'] == True), True, False)
     post_df['author'] = post_df['author'].astype(str)
     post_df['edited'] = post_df['edited'].where(post_df['edited'] == True, False)
