@@ -87,3 +87,16 @@ services:
         condition: service_started
       airflow-init:
         condition: service_completed_successfully
+
+  mongodb:
+    image: mongo:6
+    container_name: reddit-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: reddit_db
+
+volumes:
+  mongo_data:
