@@ -11,7 +11,7 @@ CLIENT_ID = parser.get('api_keys', 'reddit_client_id')
 USER_AGENT = parser.get('api_keys', 'user_agent')
 
 # MongoDB
-MONGO_URI = parser.get('mongodb','mongo_url')
+MONGO_URI = parser.get('mongodb','mongo_uri')
 MONGO_DB = parser.get('mongodb','mongo_db')
 
 RAW_COLLECTION = parser.get('mongodb','raw_collection')
