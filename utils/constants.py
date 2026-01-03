@@ -10,6 +10,13 @@ SECRET = parser.get('api_keys', 'reddit_secret_key')
 CLIENT_ID = parser.get('api_keys', 'reddit_client_id')
 USER_AGENT = parser.get('api_keys', 'user_agent')
 
+# MongoDB
+MONGO_URI = parser.get('mongodb','mongo_url')
+MONGO_DB = parser.get('mongodb','mongo_db')
+
+RAW_COLLECTION = parser.get('mongodb','raw_collection')
+CLEAN_COLLECTION = parser.get('mongodb','clean_collection')
+
 DATABASE_HOST = parser.get('database', 'database_host')
 DATABASE_NAME = parser.get('database', 'database_name')
 DATABASE_PORT = parser.get('database', 'database_port')
