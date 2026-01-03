@@ -3,7 +3,8 @@ import pandas as pd
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 import praw
-from utils.constants import PG_PARAMS
+from pymongo import MongoClient
+from utils.constants import PG_PARAMS, MONGO_URI
 
 # Connect to Reddit API
 def connect_to_reddit(api_key, api_secret, user_agent):
@@ -62,7 +63,7 @@ def transform_data(post_df: pd.DataFrame):
 
     return post_df
 
-# Connect to PostgreSql
+# Connect to Postgres
 def get_db_connection():
     try:    
         conn = psycopg2.connect(**PG_PARAMS)
@@ -159,3 +160,8 @@ def load_to_postgres(cur, conn, dataframe=None):
     cur.close()
     conn.close()
     print("Connection closed.")
+
+# Connect to MongoDB
+def get_mongo_client():
+    mongo_uri = MONGO_URI
+    return MongoClient(mongo_uri)

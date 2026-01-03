@@ -3,8 +3,8 @@ import pandas as pd
 import json
 import os
 from utils.constants import CLIENT_ID, SECRET, USER_AGENT, OUTPUT_PATH, MONGO_DB, RAW_COLLECTION
-from db.mongo_client import get_mongo_client
-from etls.reddit_etl import (connect_to_reddit, extract_reddit_posts, transform_data, get_db_connection, load_to_postgres)
+from etls.reddit_etl import (connect_to_reddit, extract_reddit_posts, transform_data, 
+                             get_db_connection, load_to_postgres, get_mongo_client)
 
 def extract_reddit_data(subreddits, time_filter='day', limit=None):
     # Connect to Reddit API
