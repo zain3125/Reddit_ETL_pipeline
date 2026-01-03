@@ -6,7 +6,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from pipelines.reddit_pipeline import extract_reddit_data, load_data_to_database, load_data_to_csv_task
+from pipelines.reddit_pipeline import extract_reddit_data, load_data_to_database, load_data_to_csv_task, load_raw_posts_to_mongo
 default_args = {
     'owner': 'zain',
     'start_date': datetime(2025, 10, 17),
@@ -28,7 +28,6 @@ extract_task = PythonOperator(
     task_id='extract_reddit_data',
     python_callable=extract_reddit_data,
     op_kwargs={
-        'file_name': f'reddit_posts_{datetime.now().strftime("%Y%m%d")}',
         'subreddits': ['Egypt', 'CAIRO', 'AlexandriaEgy', 'Masr'],
         'time_filter': 'day',
         'limit': 100,
@@ -51,4 +50,11 @@ load_task = PythonOperator(
     dag=dag,
 )
 
-extract_task >> [load_to_csv_task, load_task]
+mongo_task = PythonOperator(
+    task_id='load_data_to_mongo',
+    python_callable=load_raw_posts_to_mongo,
+    provide_context=True,
+    dag=dag,
+)
+
+extract_task >> [mongo_task, load_to_csv_task, load_task]
