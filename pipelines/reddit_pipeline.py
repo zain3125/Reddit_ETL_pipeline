@@ -1,10 +1,12 @@
 from datetime import datetime
 import pandas as pd
+import json
 import os
-from utils.constants import CLIENT_ID, SECRET, USER_AGENT, OUTPUT_PATH
+from utils.constants import CLIENT_ID, SECRET, USER_AGENT, OUTPUT_PATH, MONGO_DB, RAW_COLLECTION
+from db.mongo_client import get_mongo_client
 from etls.reddit_etl import (connect_to_reddit, extract_reddit_posts, transform_data, get_db_connection, load_to_postgres)
 
-def extract_reddit_data(file_name: str, subreddits: list, time_filter='day', limit=None):
+def extract_reddit_data(subreddits, time_filter='day', limit=None):
     # Connect to Reddit API
     instance = connect_to_reddit(CLIENT_ID, SECRET, USER_AGENT)
     all_posts = []
@@ -72,3 +74,24 @@ def load_data_to_csv_task(**context):
     df.to_csv(file_path, index=False)
     print(f"✅ Data saved to CSV at: {file_path}")
 
+def load_raw_posts_to_mongo(**context):
+    posts_json = context['ti'].xcom_pull(task_ids='extract_reddit_data')
+
+    if not posts_json:
+        print("No data received from extract_reddit_data.")
+        return
+
+    posts = json.loads(posts_json)
+    client = get_mongo_client()
+    db = client[MONGO_DB]
+    collection = db[RAW_COLLECTION]
+
+    for post in posts:
+        collection.update_one(
+            {"_id": f"t3_{post.get('id')}"},
+            {"$set": post},
+            upsert=True
+        )
+
+    client.close()
+    print(f"Inserted/Updated {len(posts)} posts into MongoDB.")
