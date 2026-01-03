@@ -14,6 +14,7 @@ x-airflow-common:
     - ./data:/opt/airflow/data
     - ./etls:/opt/airflow/etls
     - ./logs:/opt/airflow/logs
+    - ./db:/opt/airflow/db
     - ./pipelines:/opt/airflow/pipelines
     - ./plugins:/opt/airflow/plugins
     - ./tests:/opt/airflow/tests
