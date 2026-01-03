@@ -72,6 +72,27 @@ def extract_reddit_comments(reddit_instance, subreddit, time_filter, limit=None)
 
     return all_comments_tree
 
+# Load data
+def load_posts_to_mongo(mongo_client, db_name, collection_name, posts):
+    db = mongo_client[db_name]
+    collection = db[collection_name]
+    for post in posts:
+        collection.update_one(
+            {"_id": f"t3_{post.get('id')}"},
+            {"$set": post},
+            upsert=True
+        )
+
+def load_comments_to_mongo(mongo_client, db_name, collection_name, comments):
+    db = mongo_client[db_name]
+    collection = db[collection_name]
+    for comment in comments:
+        collection.update_one(
+            {"_id": comment.get('id')},
+            {"$set": comment},
+            upsert=True
+        )
+
 def merge_posts_and_comments_in_mongo():
     client = get_mongo_client()
     db = client[MONGO_DB]

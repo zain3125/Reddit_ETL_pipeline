@@ -1,5 +1,5 @@
 from utils.constants import CLIENT_ID, SECRET, USER_AGENT, MONGO_DB, RAW_COLLECTION
-from etls.reddit_etl import (connect_to_reddit, extract_reddit_posts,
+from etls.reddit_etl import (connect_to_reddit, extract_reddit_posts, load_posts_to_mongo, load_comments_to_mongo,
                               get_mongo_client, extract_reddit_comments, merge_posts_and_comments_in_mongo)
 
 def extract_reddit_posts_data(subreddits, time_filter='day', limit=None):
@@ -22,24 +22,11 @@ def extract_reddit_posts_data(subreddits, time_filter='day', limit=None):
 
 def load_raw_posts_to_mongo(**context):
     posts = context['ti'].xcom_pull(task_ids='extract_reddit_data')
-
-    if not posts:
-        print("No data received from extract_reddit_data.")
-        return
-
+    
+    if not posts: return
     client = get_mongo_client()
-    db = client[MONGO_DB]
-    collection = db[RAW_COLLECTION]
-
-    for post in posts:
-        collection.update_one(
-            {"_id": f"t3_{post.get('id')}"},
-            {"$set": post},
-            upsert=True
-        )
-
+    load_posts_to_mongo(client, MONGO_DB, RAW_COLLECTION, posts)
     client.close()
-    print(f"Inserted/Updated {len(posts)} posts into MongoDB.")
 
 def extract_reddit_comments_data(subreddits, time_filter='day', limit=None):
     instance = connect_to_reddit(CLIENT_ID, SECRET, USER_AGENT)
@@ -55,24 +42,11 @@ def extract_reddit_comments_data(subreddits, time_filter='day', limit=None):
 
 def load_raw_comments_to_mongo(**context):
     comments = context['ti'].xcom_pull(task_ids='extract_comments_task')
-
-    if not comments:
-        print("No comments data received.")
-        return
+    if not comments: return
 
     client = get_mongo_client()
-    db = client[MONGO_DB]
-    collection = db['raw_comments']
-
-    for comment in comments:
-        collection.update_one(
-            {"_id": comment.get('id')},
-            {"$set": comment},
-            upsert=True
-        )
-
+    load_comments_to_mongo(client, MONGO_DB, 'raw_comments', comments)
     client.close()
-    print(f"Inserted/Updated {len(comments)} comment trees into MongoDB.")
 
 def run_mongo_aggregation():
     merge_posts_and_comments_in_mongo()
