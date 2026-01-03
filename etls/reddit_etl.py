@@ -18,19 +18,27 @@ def connect_to_reddit(api_key, api_secret, user_agent):
         print(f"Error connecting to Reddit: {e}")    
 
 # Extract Reddit data
-def extract_reddit_posts(reddit_instance: Reddit, subreddit: str, time_filter: str, limit=None):
-    subreddit = reddit_instance.subreddit(subreddit)
-    posts = subreddit.top(time_filter=time_filter, limit=limit)
+def extract_reddit_posts(
+    reddit_instance: Reddit,
+    subreddit: str,
+    time_filter: str,
+    limit=None
+):
+    subreddit_obj = reddit_instance.subreddit(subreddit)
+    posts = subreddit_obj.top(time_filter=time_filter, limit=limit)
 
-    posts_lists = []
+    posts_list = []
 
     for post in posts:
         post_dict = vars(post)
-        
-        post = {key: post_dict[key] for key in POST_FIELDS}
-        posts_lists.append(post)
 
-    return posts_lists
+        post_dict.pop('_reddit', None)
+        post_dict.pop('subreddit', None)
+
+        posts_list.append(post_dict)
+
+    return posts_list
+
 
 # Transform Reddit data
 def transform_data(post_df: pd.DataFrame):
@@ -39,8 +47,9 @@ def transform_data(post_df: pd.DataFrame):
         'score', 'num_comments', 'author', 'created_utc', 'url', 
         'over_18', 'edited', 'spoiler', 'stickied'
     ]
-    post_df['created_utc'] = pd.to_datetime(post_df['created_utc'], unit='s')
-    post_df['created_utc'] = post_df['created_utc'].dt.strftime('%Y-%m-%d %H:%M:%S')
+    post_df['created_utc'] = pd.to_datetime(
+        post_df['created_utc'], unit='s'
+    ).dt.strftime('%Y-%m-%d %H:%M:%S')
     post_df['over_18'] = np.where((post_df['over_18'] == True), True, False)
     post_df['author'] = post_df['author'].astype(str)
     post_df['edited'] = post_df['edited'].where(post_df['edited'] == True, False)
