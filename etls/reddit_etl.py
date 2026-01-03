@@ -1,5 +1,4 @@
 import numpy as np
-import os
 import pandas as pd
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
@@ -7,7 +6,7 @@ import praw
 from praw import Reddit
 from utils.constants import POST_FIELDS, PG_PARAMS
 
-# Function to connect to Reddit API
+# Connect to Reddit API
 def connect_to_reddit(api_key, api_secret, user_agent):
     try:
         reddit = praw.Reddit(client_id=api_key,
@@ -18,7 +17,7 @@ def connect_to_reddit(api_key, api_secret, user_agent):
     except Exception as e:
         print(f"Error connecting to Reddit: {e}")    
 
-# Function to extract Reddit data
+# Extract Reddit data
 def extract_reddit_posts(reddit_instance: Reddit, subreddit: str, time_filter: str, limit=None):
     subreddit = reddit_instance.subreddit(subreddit)
     posts = subreddit.top(time_filter=time_filter, limit=limit)
@@ -33,7 +32,7 @@ def extract_reddit_posts(reddit_instance: Reddit, subreddit: str, time_filter: s
 
     return posts_lists
 
-# Function to transform Reddit data
+# Transform Reddit data
 def transform_data(post_df: pd.DataFrame):
     TARGET_COLUMNS_ORDER = [
         'id', 'subreddit_name_prefixed', 'title', 'flair', 'selftext', 
@@ -60,10 +59,8 @@ def transform_data(post_df: pd.DataFrame):
     post_df = post_df[TARGET_COLUMNS_ORDER]
 
     return post_df
-# Function to load data to CSV
-def load_data_to_csv(data: pd.DataFrame, path: str):
-    data.to_csv(path, index=False)
 
+# Connect to PostgreSql
 def get_db_connection():
     try:    
         conn = psycopg2.connect(**PG_PARAMS)

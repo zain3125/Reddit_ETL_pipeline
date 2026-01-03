@@ -2,8 +2,7 @@ from datetime import datetime
 import pandas as pd
 import os
 from utils.constants import CLIENT_ID, SECRET, USER_AGENT, OUTPUT_PATH
-from etls.reddit_etl import (connect_to_reddit, extract_reddit_posts, transform_data, load_data_to_csv
-                             ,get_db_connection, load_to_postgres)
+from etls.reddit_etl import (connect_to_reddit, extract_reddit_posts, transform_data, get_db_connection, load_to_postgres)
 
 def extract_reddit_data(file_name: str, subreddits: list, time_filter='day', limit=None):
     # Connect to Reddit API
