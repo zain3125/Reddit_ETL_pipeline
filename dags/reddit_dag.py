@@ -35,20 +35,20 @@ extract_task = PythonOperator(
     dag=dag,
 )
 
-load_to_csv_task = PythonOperator(
-    task_id='load_to_csv',
-    python_callable=load_data_to_csv_task,
-    provide_context=True,
-    op_kwargs={'file_path': f"/opt/airflow/data/output/reddit_posts_{datetime.now().strftime('%Y%m%d')}.csv"},
-    dag=dag,
-)
+# load_to_csv_task = PythonOperator(
+#     task_id='load_to_csv',
+#     python_callable=load_data_to_csv_task,
+#     provide_context=True,
+#     op_kwargs={'file_path': f"/opt/airflow/data/output/reddit_posts_{datetime.now().strftime('%Y%m%d')}.csv"},
+#     dag=dag,
+# )
 
-load_task = PythonOperator(
-    task_id='load_data_to_database',
-    python_callable=load_data_to_database,
-    provide_context=True,
-    dag=dag,
-)
+# load_task = PythonOperator(
+#     task_id='load_data_to_database',
+#     python_callable=load_data_to_database,
+#     provide_context=True,
+#     dag=dag,
+# )
 
 mongo_task = PythonOperator(
     task_id='load_data_to_mongo',
@@ -57,4 +57,5 @@ mongo_task = PythonOperator(
     dag=dag,
 )
 
-extract_task >> [mongo_task, load_to_csv_task, load_task]
+extract_task >> [mongo_task]
+# , load_to_csv_task, load_task
