@@ -3,8 +3,7 @@ import pandas as pd
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 import praw
-from praw import Reddit
-from utils.constants import POST_FIELDS, PG_PARAMS
+from utils.constants import PG_PARAMS
 
 # Connect to Reddit API
 def connect_to_reddit(api_key, api_secret, user_agent):
@@ -18,12 +17,7 @@ def connect_to_reddit(api_key, api_secret, user_agent):
         print(f"Error connecting to Reddit: {e}")    
 
 # Extract Reddit data
-def extract_reddit_posts(
-    reddit_instance: Reddit,
-    subreddit: str,
-    time_filter: str,
-    limit=None
-):
+def extract_reddit_posts(reddit_instance, subreddit, time_filter, limit=None):
     subreddit_obj = reddit_instance.subreddit(subreddit)
     posts = subreddit_obj.top(time_filter=time_filter, limit=limit)
 
@@ -38,7 +32,6 @@ def extract_reddit_posts(
         posts_list.append(post_dict)
 
     return posts_list
-
 
 # Transform Reddit data
 def transform_data(post_df: pd.DataFrame):
