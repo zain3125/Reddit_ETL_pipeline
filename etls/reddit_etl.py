@@ -1,6 +1,6 @@
 import praw
 from pymongo import MongoClient
-from utils.constants import MONGO_URI
+from utils.constants import MONGO_URI, MONGO_DB, RAW_COLLECTION
 
 # Connect to Reddit API
 def connect_to_reddit(api_key, api_secret, user_agent):
@@ -71,3 +71,25 @@ def extract_reddit_comments(reddit_instance, subreddit, time_filter, limit=None)
             all_comments_tree.append(comment_data)
 
     return all_comments_tree
+
+def merge_posts_and_comments_in_mongo():
+    client = get_mongo_client()
+    db = client[MONGO_DB]
+    
+    pipeline = [
+        {
+            "$lookup": {
+                "from": "raw_comments",
+                "localField": "id",
+                "foreignField": "post_id",
+                "as": "comments_list"
+            }
+        },
+        {
+            "$out": "processed_reddit_data"
+        }
+    ]
+    
+    db[RAW_COLLECTION].aggregate(pipeline)
+    client.close()
+    print("✅ Aggregation completed: Posts and Comments merged into 'processed_reddit_data'")
