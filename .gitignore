@@ -1,6 +1,7 @@
 # ===== Python =====
 __pycache__/
 *.egg-info/
+__init__.py
 dist/
 build/
 # ===== Virtual Environment =====
