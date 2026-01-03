@@ -17,7 +17,7 @@ def connect_to_reddit(api_key, api_secret, user_agent):
     except Exception as e:
         print(f"Error connecting to Reddit: {e}")    
 
-# Extract Reddit data
+# Extract Reddit posts
 def extract_reddit_posts(reddit_instance, subreddit, time_filter, limit=None):
     subreddit_obj = reddit_instance.subreddit(subreddit)
     posts = subreddit_obj.top(time_filter=time_filter, limit=limit)
@@ -29,6 +29,8 @@ def extract_reddit_posts(reddit_instance, subreddit, time_filter, limit=None):
 
         post_dict.pop('_reddit', None)
         post_dict.pop('subreddit', None)
+        if post_dict.get('author'):
+            post_dict['author'] = str(post_dict['author'])
 
         posts_list.append(post_dict)
 
@@ -165,3 +167,8 @@ def load_to_postgres(cur, conn, dataframe=None):
 def get_mongo_client():
     mongo_uri = MONGO_URI
     return MongoClient(mongo_uri)
+
+def extract_reddit_comments(reddit_instance, subreddit, time_filter, limit=None):
+    subreddit_obj = reddit_instance.subreddit(subreddit)
+    comments = subreddit_obj.top(time_filter=time_filter, limit=limit)
+

@@ -1,6 +1,5 @@
 from datetime import datetime
 import pandas as pd
-import json
 import os
 from utils.constants import CLIENT_ID, SECRET, USER_AGENT, OUTPUT_PATH, MONGO_DB, RAW_COLLECTION
 from etls.reddit_etl import (connect_to_reddit, extract_reddit_posts, transform_data, 
@@ -19,15 +18,10 @@ def extract_reddit_data(subreddits, time_filter='day', limit=None):
             post["subreddit"] = subreddit
         all_posts.extend(posts)
 
-    post_df = pd.DataFrame(all_posts)
-
-    # Transform data as needed
-    post_df = transform_data(post_df)
-
     # Load data to the desired destination
-    print(f"Extracted {len(post_df)} posts from Reddit.")
+    print(f"Extracted {len(all_posts)} posts from Reddit.")
     
-    return post_df.to_json(orient="records")
+    return all_posts
     
 def load_data_to_database(**context):
     json_data = context['ti'].xcom_pull(task_ids='extract_reddit_data')
@@ -75,13 +69,12 @@ def load_data_to_csv_task(**context):
     print(f"✅ Data saved to CSV at: {file_path}")
 
 def load_raw_posts_to_mongo(**context):
-    posts_json = context['ti'].xcom_pull(task_ids='extract_reddit_data')
+    posts = context['ti'].xcom_pull(task_ids='extract_reddit_data')
 
-    if not posts_json:
+    if not posts:
         print("No data received from extract_reddit_data.")
         return
 
-    posts = json.loads(posts_json)
     client = get_mongo_client()
     db = client[MONGO_DB]
     collection = db[RAW_COLLECTION]
