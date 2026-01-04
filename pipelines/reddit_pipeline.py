@@ -4,8 +4,8 @@ from utils.constants import CLIENT_ID, SECRET, USER_AGENT, MONGO_DB, RAW_COLLECT
 from utils.connections import connect_to_reddit
 from elts.reddit_elt import (
     extract_reddit_posts, load_posts_to_mongo, 
-    load_comments_to_mongo, get_mongo_client, extract_reddit_comments, 
-    merge_posts_and_comments_in_mongo, transform_reddit_data
+    load_comments_to_mongo, get_mongo_client, merge_posts_and_comments_in_mongo, 
+    transform_reddit_data, get_active_post_ids, extract_comments_for_ids
 )
 
 def extract_reddit_posts_data(subreddits, time_filter='day', limit=None):
@@ -42,32 +42,33 @@ def load_raw_posts_to_mongo(**context):
     finally:
         client.close()
 
-def extract_reddit_comments_data(subreddits, time_filter='day', limit=None):
+def extract_reddit_comments_data():
     instance = connect_to_reddit(CLIENT_ID, SECRET, USER_AGENT)
-    if not instance:
-        raise AirflowException("Failed to connect to Reddit API during comments extraction")
+    client = get_mongo_client()
+    
+    try:
+        post_ids = get_active_post_ids(client, MONGO_DB, RAW_COLLECTION)
+        if not post_ids:
+            logging.info("No active posts need comment updates.")
+            return {"comments": [], "updated_post_ids": []}
 
-    all_comments = []
-    for subreddit in subreddits:
-        try:
-            comments = extract_reddit_comments(instance, subreddit, time_filter, limit)
-            all_comments.extend(comments)
-        except Exception as e:
-            logging.error(f"Error fetching comments from r/{subreddit}: {e}")
-            raise AirflowException(f"Critical error extracting comments from {subreddit}")
+        comments = extract_comments_for_ids(instance, post_ids)
+        return {"comments": comments, "updated_post_ids": post_ids}
+    finally:
+        client.close()
 
-    return all_comments
-
+# Updated for Smart Sync
 def load_raw_comments_to_mongo(**context):
-    comments = context['ti'].xcom_pull(task_ids='extract_comments_task')
+    data = context['ti'].xcom_pull(task_ids='extract_comments_task')
 
-    if not comments:
+    if not data or not data.get('comments'):
         logging.warning("No comments found in XCom.")
+        return
 
     client = get_mongo_client()
     try:
-        load_comments_to_mongo(client, MONGO_DB, 'raw_comments', comments)
-        logging.info(f"Successfully loaded {len(comments)} comments to MongoDB.")
+        load_comments_to_mongo(client, MONGO_DB, 'raw_comments', data['comments'], data.get('updated_post_ids'))
+        logging.info(f"Successfully loaded comments to MongoDB.")
     except Exception as e:
         logging.exception("Failed to load comments into Mongo")
         raise AirflowException(f"Critical failure in load_raw_comments_to_mongo: {e}")
@@ -88,7 +89,7 @@ def run_transform_pipeline():
         transform_reddit_data(
             client, 
             MONGO_DB, 
-            'processed_reddit_data',
+            'merged_reddit_data',
             'needed fields'
         )
         logging.info("Remove not needed fields step completed successfully.")

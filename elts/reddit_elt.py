@@ -44,22 +44,30 @@ def process_comment(comment):
             
     return data
 
-def extract_reddit_comments(reddit_instance, subreddit, time_filter, limit=None):
-    # Fetch posts from one subreddit
-    subreddit_obj = reddit_instance.subreddit(subreddit)
-    posts = subreddit_obj.top(time_filter=time_filter, limit=limit)
+# --- New Addition for Smart Sync ---
+def get_active_post_ids(mongo_client, db_name, collection_name):
+    db = mongo_client[db_name]
+    current_ts = datetime.utcnow().timestamp()
+    query = {
+        "created_utc": {"$gt": current_ts - (30 * 24 * 60 * 60)}, # Posts from last 30 days
+        "$or": [
+            {"last_sync_utc": {"$lt": current_ts - (24 * 60 * 60)}}, # Not synced in 24h
+            {"last_sync_utc": {"$exists": False}}
+        ]
+    }
+    return [post['id'] for post in db[collection_name].find(query, {"id": 1})]
 
+def extract_comments_for_ids(reddit_instance, post_ids):
     all_comments_tree = []
-
-    # Fetch just top comment without replies
-    for post in posts:
-        post.comments.replace_more(limit=0)
-
-        for top_level_comment in post.comments:
-            comment_data = process_comment(top_level_comment)
-            comment_data['post_id'] = post.id
-            all_comments_tree.append(comment_data)
-
+    for post_id in post_ids:
+        try:
+            submission = reddit_instance.submission(id=post_id)
+            submission.comments.replace_more(limit=0)
+            for top_level_comment in submission.comments:
+                comment_data = process_comment(top_level_comment)
+                comment_data['post_id'] = post_id
+                all_comments_tree.append(comment_data)
+        except: continue
     return all_comments_tree
 
 # Load data
@@ -69,9 +77,11 @@ def load_posts_to_mongo(mongo_client, db_name, collection_name, posts):
 
     operations = []
     now = datetime.utcnow()
+    sync_ts = now.timestamp()
 
     for post in posts:
         post["ingested_at"] = now
+        post["last_sync_utc"] = sync_ts
 
         operations.append(
             UpdateOne(
@@ -84,7 +94,7 @@ def load_posts_to_mongo(mongo_client, db_name, collection_name, posts):
     if operations:
         collection.bulk_write(operations)
 
-def load_comments_to_mongo(mongo_client, db_name, collection_name, comments):
+def load_comments_to_mongo(mongo_client, db_name, collection_name, comments, post_ids_updated=None):
     db = mongo_client[db_name]
     collection = db[collection_name]
 
@@ -104,6 +114,13 @@ def load_comments_to_mongo(mongo_client, db_name, collection_name, comments):
 
     if operations:
         collection.bulk_write(operations)
+    
+    # Update last_sync_utc for the posts we just updated [Added]
+    if post_ids_updated:
+        db[RAW_COLLECTION].update_many(
+            {"id": {"$in": post_ids_updated}},
+            {"$set": {"last_sync_utc": now.timestamp()}}
+        )
 
 def merge_posts_and_comments_in_mongo():
     client = get_mongo_client()
@@ -119,13 +136,13 @@ def merge_posts_and_comments_in_mongo():
             }
         },
         {
-            "$out": "processed_reddit_data"
+            "$out": "merged_reddit_data"
         }
     ]
     
     db[RAW_COLLECTION].aggregate(pipeline)
     client.close()
-    print("Aggregation completed: Posts and Comments merged into 'processed_reddit_data'")
+    print("Aggregation completed: Posts and Comments merged into 'merged_reddit_data'")
 
 # Transform data
 def transform_reddit_data(mongo_client, db_name, source_collection, target_collection):

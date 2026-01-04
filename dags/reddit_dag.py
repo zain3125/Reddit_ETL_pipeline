@@ -41,11 +41,6 @@ extract_posts_task = PythonOperator(
 extract_comments_task = PythonOperator(
     task_id='extract_comments_task',
     python_callable=extract_reddit_comments_data,
-    op_kwargs={
-        'subreddits': ['Egypt', 'CAIRO', 'AlexandriaEgy', 'Masr'],
-        'time_filter': 'day',
-        'limit': 10,
-    },
     dag=dag,
 )
 
