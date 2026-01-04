@@ -45,10 +45,9 @@ services:
   airflow-init:
     <<: *airflow-common
     command: >
-      bash -c "pip install -r /opt/airflow/requirements.txt &&
-               airflow db init &&
-               airflow db upgrade &&
-               airflow users create --username airflow --firstname admin --lastname admin --role Admin --email airflow@airflow.com --password airflow"
+      bash -c "airflow db init &&
+                    airflow db upgrade &&
+                    airflow users create --username airflow --firstname admin --lastname admin --role Admin --email airflow@airflow.com --password airflow"
     restart: "no"
 
   airflow-webserver:
