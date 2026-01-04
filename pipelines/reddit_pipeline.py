@@ -4,7 +4,7 @@ from utils.constants import CLIENT_ID, SECRET, USER_AGENT, MONGO_DB, RAW_COLLECT
 from elts.reddit_elt import (
     connect_to_reddit, extract_reddit_posts, load_posts_to_mongo, 
     load_comments_to_mongo, get_mongo_client, extract_reddit_comments, 
-    merge_posts_and_comments_in_mongo
+    merge_posts_and_comments_in_mongo, transform_reddit_data
 )
 
 def extract_reddit_posts_data(subreddits, time_filter='day', limit=None):
@@ -80,3 +80,19 @@ def run_mongo_aggregation():
     except Exception as e:
         logging.exception("Aggregation failed")
         raise AirflowException(f"MongoDB Aggregation (Merge) failed: {e}")
+
+def run_transform_pipeline():
+    client = get_mongo_client()
+    try:
+        transform_reddit_data(
+            client, 
+            MONGO_DB, 
+            'processed_reddit_data',
+            'needed fields'
+        )
+        logging.info("Remove not needed fields step completed successfully.")
+    except Exception as e:
+        logging.exception("Transformation failed")
+        raise AirflowException(f"Critical error during transformation: {e}")
+    finally:
+        client.close()

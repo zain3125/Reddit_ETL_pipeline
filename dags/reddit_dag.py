@@ -7,7 +7,8 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from pipelines.reddit_pipeline import (extract_reddit_posts_data, load_raw_posts_to_mongo, 
-                                       extract_reddit_comments_data, load_raw_comments_to_mongo, run_mongo_aggregation)
+                                       extract_reddit_comments_data, load_raw_comments_to_mongo, 
+                                       run_mongo_aggregation, run_transform_pipeline)
 default_args = {
     'owner': 'zain',
     'start_date': datetime(2025, 10, 17),
@@ -67,6 +68,13 @@ aggregate_task = PythonOperator(
     dag=dag,
 )
 
+transform_task = PythonOperator(
+    task_id='transform_and_clean_data',
+    python_callable=run_transform_pipeline,
+    provide_context=True,
+    dag=dag,
+)
+
 extract_posts_task >> mongo_posts_task
 extract_comments_task >> mongo_comments_task
-[mongo_posts_task, mongo_comments_task] >> aggregate_task
+[mongo_posts_task, mongo_comments_task] >> aggregate_task >> transform_task

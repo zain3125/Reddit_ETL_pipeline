@@ -1,6 +1,7 @@
 import praw
 from pymongo import MongoClient
 from utils.constants import MONGO_URI, MONGO_DB, RAW_COLLECTION
+from utils.transform_helpers import get_mongo_clean_text_field
 
 # Connect to Reddit API
 def connect_to_reddit(api_key, api_secret, user_agent):
@@ -114,3 +115,65 @@ def merge_posts_and_comments_in_mongo():
     db[RAW_COLLECTION].aggregate(pipeline)
     client.close()
     print("✅ Aggregation completed: Posts and Comments merged into 'processed_reddit_data'")
+
+# Transform data
+def transform_reddit_data(mongo_client, db_name, source_collection, target_collection):
+    db = mongo_client[db_name]
+
+    pipeline = [
+            {
+                "$unset": [
+                    "_additional_fetch_params",
+                    "_comments_by_id",
+                    "_fetched",
+                    "created",
+                    "name",
+                    "secure_media_embed",
+                    "subreddit_id",
+                    "subreddit_name_prefixed",
+                    "subreddit_subscribers",
+                    "subreddit_type",
+                    "author_flair_background_color",
+                    "author_flair_css_class",
+                    "author_flair_richtext",
+                    "author_flair_template_id",
+                    "author_flair_text",
+                    "author_flair_text_color",
+                    "author_flair_type",
+                    "selftext_html",
+                    "link_flair_background_color",
+                    "link_flair_css_class",
+                    "link_flair_richtext",
+                    "link_flair_template_id",
+                    "link_flair_text_color",
+                    "link_flair_type",
+                    "url_overridden_by_dest",
+                    "preview.images.resolutions",
+                    "preview.images.variants",
+                    "preview.images.id",
+                    "comments_list.post_id",
+                    "comments_list._id"
+                ]
+            },
+            {
+                "$set": {
+                    "root_as_array": {
+                        "$filter": {
+                            "input": { "$objectToArray": "$$ROOT" },
+                            "as": "item",
+                            "cond": { "$ne": ["$$item.v", None] }
+                        }
+                    }
+                }
+            },
+            {
+                "$replaceRoot": {
+                    "newRoot": { "$arrayToObject": "$root_as_array" }
+                }
+            },
+            {
+                "$out": target_collection
+            }
+        ]
+    db[source_collection].aggregate(pipeline)
+    print(f"✅ Data cleaned using unified helper and moved to {target_collection}")
