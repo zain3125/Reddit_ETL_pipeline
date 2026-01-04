@@ -14,7 +14,6 @@ x-airflow-common:
     - ./data:/opt/airflow/data
     - ./elts:/opt/airflow/elts
     - ./logs:/opt/airflow/logs
-    - ./db:/opt/airflow/db
     - ./pipelines:/opt/airflow/pipelines
     - ./utils:/opt/airflow/utils
     - ./requirements.txt:/opt/airflow/requirements.txt
