@@ -1,5 +1,5 @@
 from utils.constants import CLIENT_ID, SECRET, USER_AGENT, MONGO_DB, RAW_COLLECTION
-from etls.reddit_etl import (connect_to_reddit, extract_reddit_posts, load_posts_to_mongo, load_comments_to_mongo,
+from elts.reddit_elt import (connect_to_reddit, extract_reddit_posts, load_posts_to_mongo, load_comments_to_mongo,
                               get_mongo_client, extract_reddit_comments, merge_posts_and_comments_in_mongo)
 
 def extract_reddit_posts_data(subreddits, time_filter='day', limit=None):

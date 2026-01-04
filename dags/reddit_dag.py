@@ -67,4 +67,5 @@ aggregate_task = PythonOperator(
 )
 
 extract_posts_task >> mongo_posts_task
+extract_comments_task >> mongo_comments_task
 [mongo_posts_task, mongo_comments_task] >> aggregate_task
