@@ -1,8 +1,9 @@
 from airflow.exceptions import AirflowException
 import logging
 from utils.constants import CLIENT_ID, SECRET, USER_AGENT, MONGO_DB, RAW_COLLECTION
+from utils.connections import connect_to_reddit
 from elts.reddit_elt import (
-    connect_to_reddit, extract_reddit_posts, load_posts_to_mongo, 
+    extract_reddit_posts, load_posts_to_mongo, 
     load_comments_to_mongo, get_mongo_client, extract_reddit_comments, 
     merge_posts_and_comments_in_mongo, transform_reddit_data
 )

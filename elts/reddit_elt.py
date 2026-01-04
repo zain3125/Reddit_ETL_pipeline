@@ -1,23 +1,5 @@
-import praw
-from pymongo import MongoClient
-from utils.constants import MONGO_URI, MONGO_DB, RAW_COLLECTION
-from utils.transform_helpers import get_mongo_clean_text_field
-
-# Connect to Reddit API
-def connect_to_reddit(api_key, api_secret, user_agent):
-    try:
-        reddit = praw.Reddit(client_id=api_key,
-                            client_secret=api_secret,
-                            user_agent=user_agent)
-        print("Connected to Reddit API successfully")
-        return reddit
-    except Exception as e:
-        print(f"Error connecting to Reddit: {e}")    
-
-# Connect to MongoDB
-def get_mongo_client():
-    mongo_uri = MONGO_URI
-    return MongoClient(mongo_uri)
+from utils.constants import MONGO_DB, RAW_COLLECTION
+from utils.connections import get_mongo_client
 
 # Extract data
 def extract_reddit_posts(reddit_instance, subreddit, time_filter, limit=None):
