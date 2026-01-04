@@ -1,97 +1,82 @@
-from datetime import datetime
-import pandas as pd
-import json
-import os
-from utils.constants import CLIENT_ID, SECRET, USER_AGENT, OUTPUT_PATH, MONGO_DB, RAW_COLLECTION
-from etls.reddit_etl import (connect_to_reddit, extract_reddit_posts, transform_data, 
-                             get_db_connection, load_to_postgres, get_mongo_client)
+from airflow.exceptions import AirflowException
+import logging
+from utils.constants import CLIENT_ID, SECRET, USER_AGENT, MONGO_DB, RAW_COLLECTION
+from elts.reddit_elt import (
+    connect_to_reddit, extract_reddit_posts, load_posts_to_mongo, 
+    load_comments_to_mongo, get_mongo_client, extract_reddit_comments, 
+    merge_posts_and_comments_in_mongo
+)
 
-def extract_reddit_data(subreddits, time_filter='day', limit=None):
-    # Connect to Reddit API
+def extract_reddit_posts_data(subreddits, time_filter='day', limit=None):
     instance = connect_to_reddit(CLIENT_ID, SECRET, USER_AGENT)
+    if not instance:
+        raise AirflowException("Failed to connect to Reddit API during posts extraction")
+
     all_posts = []
-
-    # Extract data from Reddit
     for subreddit in subreddits:
-        print(f"Fetching posts from r/{subreddit}...")
-        posts = extract_reddit_posts(instance, subreddit, time_filter, limit)
-        for post in posts:
-            post["subreddit"] = subreddit
-        all_posts.extend(posts)
+        try:
+            posts = extract_reddit_posts(instance, subreddit, time_filter, limit)
+            for post in posts:
+                post["subreddit"] = subreddit
+            all_posts.extend(posts)
+        except Exception as e:
+            logging.error(f"Error fetching posts from r/{subreddit}: {e}")
+            raise AirflowException(f"Critical error extracting posts from {subreddit}")
 
-    post_df = pd.DataFrame(all_posts)
-
-    # Transform data as needed
-    post_df = transform_data(post_df)
-
-    # Load data to the desired destination
-    print(f"Extracted {len(post_df)} posts from Reddit.")
-    
-    return post_df.to_json(orient="records")
-    
-def load_data_to_database(**context):
-    json_data = context['ti'].xcom_pull(task_ids='extract_reddit_data')
-    
-    if not json_data:
-        print("No data received from extract_reddit_data.")
-        return
-    
-    df = pd.read_json(json_data)
-    df['created_utc'] = pd.to_datetime(df['created_utc'], errors='coerce') 
-
-    def format_datetime_for_postgres(dt):
-        if pd.isna(dt):
-            return None
-        return dt.strftime('%Y-%m-%d %H:%M:%S')
-
-    df['created_utc'] = df['created_utc'].apply(format_datetime_for_postgres)
-    
-    print(f"Loaded DataFrame with {len(df)} rows.")
-
-    cur, conn = get_db_connection()
-    if not cur or not conn:
-        print("Database connection failed.")
-        return
-
-    load_to_postgres(cur=cur, conn=conn, dataframe=df)
-
-def load_data_to_csv_task(**context):
-    json_data = context['ti'].xcom_pull(task_ids='extract_reddit_data')
-    if not json_data:
-        print("❌ No data received from extract_reddit_data.")
-        return
-
-    # Convert JSON back to DataFrame
-    df = pd.read_json(json_data)
-
-    # Define file path dynamically
-    file_path = f"{OUTPUT_PATH}/reddit_posts_{datetime.now().strftime('%Y%m%d')}.csv"
-
-    # Ensure the output directory exists
-    os.makedirs(os.path.dirname(file_path), exist_ok=True)
-
-    # Save to CSV
-    df.to_csv(file_path, index=False)
-    print(f"✅ Data saved to CSV at: {file_path}")
+    return all_posts
 
 def load_raw_posts_to_mongo(**context):
-    posts_json = context['ti'].xcom_pull(task_ids='extract_reddit_data')
+    posts = context['ti'].xcom_pull(task_ids='extract_reddit_data')
 
-    if not posts_json:
-        print("No data received from extract_reddit_data.")
-        return
+    if not posts:
+        raise AirflowException("Error: Extraction returned no posts. Nothing to load.")
 
-    posts = json.loads(posts_json)
     client = get_mongo_client()
-    db = client[MONGO_DB]
-    collection = db[RAW_COLLECTION]
+    try:
+        load_posts_to_mongo(client, MONGO_DB, RAW_COLLECTION, posts)
+        logging.info(f"Successfully loaded {len(posts)} posts to MongoDB.")
+    except Exception as e:
+        logging.exception("Failed to load posts into Mongo")
+        raise AirflowException(f"Critical failure in load_raw_posts_to_mongo: {e}")
+    finally:
+        client.close()
 
-    for post in posts:
-        collection.update_one(
-            {"_id": f"t3_{post.get('id')}"},
-            {"$set": post},
-            upsert=True
-        )
+def extract_reddit_comments_data(subreddits, time_filter='day', limit=None):
+    instance = connect_to_reddit(CLIENT_ID, SECRET, USER_AGENT)
+    if not instance:
+        raise AirflowException("Failed to connect to Reddit API during comments extraction")
 
-    client.close()
-    print(f"Inserted/Updated {len(posts)} posts into MongoDB.")
+    all_comments = []
+    for subreddit in subreddits:
+        try:
+            comments = extract_reddit_comments(instance, subreddit, time_filter, limit)
+            all_comments.extend(comments)
+        except Exception as e:
+            logging.error(f"Error fetching comments from r/{subreddit}: {e}")
+            raise AirflowException(f"Critical error extracting comments from {subreddit}")
+
+    return all_comments
+
+def load_raw_comments_to_mongo(**context):
+    comments = context['ti'].xcom_pull(task_ids='extract_comments_task')
+
+    if not comments:
+        logging.warning("No comments found in XCom.")
+
+    client = get_mongo_client()
+    try:
+        load_comments_to_mongo(client, MONGO_DB, 'raw_comments', comments)
+        logging.info(f"Successfully loaded {len(comments)} comments to MongoDB.")
+    except Exception as e:
+        logging.exception("Failed to load comments into Mongo")
+        raise AirflowException(f"Critical failure in load_raw_comments_to_mongo: {e}")
+    finally:
+        client.close()
+
+def run_mongo_aggregation():
+    try:
+        merge_posts_and_comments_in_mongo()
+        logging.info("Successfully merged posts and comments.")
+    except Exception as e:
+        logging.exception("Aggregation failed")
+        raise AirflowException(f"MongoDB Aggregation (Merge) failed: {e}")

@@ -1,16 +1,18 @@
 from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
-from datetime import datetime 
+from datetime import datetime, timedelta 
 import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from pipelines.reddit_pipeline import extract_reddit_data, load_data_to_database, load_data_to_csv_task, load_raw_posts_to_mongo
+from pipelines.reddit_pipeline import (extract_reddit_posts_data, load_raw_posts_to_mongo, 
+                                       extract_reddit_comments_data, load_raw_comments_to_mongo, run_mongo_aggregation)
 default_args = {
     'owner': 'zain',
     'start_date': datetime(2025, 10, 17),
-    'retries': 1,}
+    'retries': 3,
+    'retry_delay': timedelta(minutes=5),}
 
 file_postfix = datetime.now().strftime("%Y%m%d")
 
@@ -24,9 +26,9 @@ dag = DAG(
 )
 
 # Extraction from reddit
-extract_task = PythonOperator(
+extract_posts_task = PythonOperator(
     task_id='extract_reddit_data',
-    python_callable=extract_reddit_data,
+    python_callable=extract_reddit_posts_data,
     op_kwargs={
         'subreddits': ['Egypt', 'CAIRO', 'AlexandriaEgy', 'Masr'],
         'time_filter': 'day',
@@ -35,26 +37,36 @@ extract_task = PythonOperator(
     dag=dag,
 )
 
-load_to_csv_task = PythonOperator(
-    task_id='load_to_csv',
-    python_callable=load_data_to_csv_task,
-    provide_context=True,
-    op_kwargs={'file_path': f"/opt/airflow/data/output/reddit_posts_{datetime.now().strftime('%Y%m%d')}.csv"},
+extract_comments_task = PythonOperator(
+    task_id='extract_comments_task',
+    python_callable=extract_reddit_comments_data,
+    op_kwargs={
+        'subreddits': ['Egypt', 'CAIRO', 'AlexandriaEgy', 'Masr'],
+        'time_filter': 'day',
+        'limit': 10,
+    },
     dag=dag,
 )
 
-load_task = PythonOperator(
-    task_id='load_data_to_database',
-    python_callable=load_data_to_database,
-    provide_context=True,
-    dag=dag,
-)
-
-mongo_task = PythonOperator(
+mongo_posts_task = PythonOperator(
     task_id='load_data_to_mongo',
     python_callable=load_raw_posts_to_mongo,
     provide_context=True,
     dag=dag,
 )
 
-extract_task >> [mongo_task, load_to_csv_task, load_task]
+mongo_comments_task = PythonOperator(
+    task_id='load_comments_to_mongo',
+    python_callable=load_raw_comments_to_mongo,
+    provide_context=True,
+    dag=dag,
+)
+aggregate_task = PythonOperator(
+    task_id='merge_reddit_data',
+    python_callable=run_mongo_aggregation,
+    dag=dag,
+)
+
+extract_posts_task >> mongo_posts_task
+extract_comments_task >> mongo_comments_task
+[mongo_posts_task, mongo_comments_task] >> aggregate_task

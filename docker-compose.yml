@@ -12,7 +12,7 @@ x-airflow-common:
     - ./config:/opt/airflow/config
     - ./dags:/opt/airflow/dags
     - ./data:/opt/airflow/data
-    - ./etls:/opt/airflow/etls
+    - ./elts:/opt/airflow/elts
     - ./logs:/opt/airflow/logs
     - ./db:/opt/airflow/db
     - ./pipelines:/opt/airflow/pipelines
