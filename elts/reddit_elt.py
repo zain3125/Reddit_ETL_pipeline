@@ -1,16 +1,21 @@
+from pymongo import UpdateOne
+from datetime import datetime
 from utils.constants import MONGO_DB, RAW_COLLECTION
 from utils.connections import get_mongo_client
 
 # Extract data
 def extract_reddit_posts(reddit_instance, subreddit, time_filter, limit=None):
+    # Fetch posts from one subreddit
     subreddit_obj = reddit_instance.subreddit(subreddit)
     posts = subreddit_obj.top(time_filter=time_filter, limit=limit)
 
     posts_list = []
 
     for post in posts:
+        # Convert post from praw.models.Submission to dict
         post_dict = vars(post)
 
+        # Remove what we can't make it in dict
         post_dict.pop('_reddit', None)
         post_dict.pop('subreddit', None)
         if post_dict.get('author'):
@@ -21,8 +26,7 @@ def extract_reddit_posts(reddit_instance, subreddit, time_filter, limit=None):
     return posts_list
 
 def process_comment(comment):
-    comment_dict = vars(comment)
-    
+    # Comment schema
     data = {
         "id": comment.id,
         "body": comment.body,
@@ -34,20 +38,23 @@ def process_comment(comment):
 
     if hasattr(comment, "replies"):
         comment.replies.replace_more(limit=0)
+        # Recursion for more replies
         for reply in comment.replies:
             data["replies"].append(process_comment(reply))
             
     return data
 
 def extract_reddit_comments(reddit_instance, subreddit, time_filter, limit=None):
+    # Fetch posts from one subreddit
     subreddit_obj = reddit_instance.subreddit(subreddit)
     posts = subreddit_obj.top(time_filter=time_filter, limit=limit)
 
     all_comments_tree = []
 
+    # Fetch just top comment without replies
     for post in posts:
         post.comments.replace_more(limit=0)
-        
+
         for top_level_comment in post.comments:
             comment_data = process_comment(top_level_comment)
             comment_data['post_id'] = post.id
@@ -59,22 +66,44 @@ def extract_reddit_comments(reddit_instance, subreddit, time_filter, limit=None)
 def load_posts_to_mongo(mongo_client, db_name, collection_name, posts):
     db = mongo_client[db_name]
     collection = db[collection_name]
+
+    operations = []
+    now = datetime.utcnow()
+
     for post in posts:
-        collection.update_one(
-            {"_id": f"t3_{post.get('id')}"},
-            {"$set": post},
-            upsert=True
+        post["ingested_at"] = now
+
+        operations.append(
+            UpdateOne(
+                {"_id": f"t3_{post.get('id')}"},
+                {"$set": post},
+                upsert=True
+            )
         )
+
+    if operations:
+        collection.bulk_write(operations)
 
 def load_comments_to_mongo(mongo_client, db_name, collection_name, comments):
     db = mongo_client[db_name]
     collection = db[collection_name]
+
+    operations = []
+    now = datetime.utcnow()
+
     for comment in comments:
-        collection.update_one(
-            {"_id": comment.get('id')},
-            {"$set": comment},
-            upsert=True
+        comment["ingested_at"] = now
+
+        operations.append(
+            UpdateOne(
+                {"_id": f"t1_{comment.get('id')}"},
+                {"$set": comment},
+                upsert=True
+            )
         )
+
+    if operations:
+        collection.bulk_write(operations)
 
 def merge_posts_and_comments_in_mongo():
     client = get_mongo_client()
@@ -96,15 +125,12 @@ def merge_posts_and_comments_in_mongo():
     
     db[RAW_COLLECTION].aggregate(pipeline)
     client.close()
-    print("✅ Aggregation completed: Posts and Comments merged into 'processed_reddit_data'")
+    print("Aggregation completed: Posts and Comments merged into 'processed_reddit_data'")
 
 # Transform data
 def transform_reddit_data(mongo_client, db_name, source_collection, target_collection):
     db = mongo_client[db_name]
-
-    pipeline = [
-            {
-                "$unset": [
+    FIELDS_TO_REMOVE = [
                     "_additional_fetch_params",
                     "_comments_by_id",
                     "_fetched",
@@ -136,6 +162,10 @@ def transform_reddit_data(mongo_client, db_name, source_collection, target_colle
                     "comments_list.post_id",
                     "comments_list._id"
                 ]
+
+    pipeline = [
+            {
+                "$unset": FIELDS_TO_REMOVE
             },
             {
                 "$set": {
@@ -154,7 +184,11 @@ def transform_reddit_data(mongo_client, db_name, source_collection, target_colle
                 }
             },
             {
-                "$out": target_collection
+                "$merge": {
+                    "into": target_collection,
+                    "whenMatched": "merge",
+                    "whenNotMatched": "insert"
+                    }
             }
         ]
     db[source_collection].aggregate(pipeline)
