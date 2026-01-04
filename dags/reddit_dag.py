@@ -1,6 +1,6 @@
 from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
-from datetime import datetime 
+from datetime import datetime, timedelta 
 import os
 import sys
 
@@ -11,7 +11,8 @@ from pipelines.reddit_pipeline import (extract_reddit_posts_data, load_raw_posts
 default_args = {
     'owner': 'zain',
     'start_date': datetime(2025, 10, 17),
-    'retries': 1,}
+    'retries': 3,
+    'retry_delay': timedelta(minutes=5),}
 
 file_postfix = datetime.now().strftime("%Y%m%d")
 
