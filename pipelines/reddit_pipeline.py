@@ -90,7 +90,7 @@ def run_transform_pipeline():
             client, 
             MONGO_DB, 
             'merged_reddit_data',
-            'needed fields'
+            'final_analytics'
         )
         logging.info("Remove not needed fields step completed successfully.")
     except Exception as e:
