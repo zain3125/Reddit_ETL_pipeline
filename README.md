@@ -15,10 +15,10 @@ this project is end-to-end **ELT Pipeline** that extract data from reddit top Eg
 ├── pipelines
 │   └── reddit_pipeline.py # Connects ELT with Airflow DAG
 ├── requirements.txt
-└── utils
-    ├── connections.py     # Connect to APIs and DataBases
-    └── constants.py
-
+├── utils
+|    ├── connections.py     # Connect to APIs and DataBases
+|    └── constants.py
+└──  work_flow_diagram.png
 ```
 ## Technologies Used
 * **Python 3.12.3** *for scription*
@@ -28,6 +28,7 @@ this project is end-to-end **ELT Pipeline** that extract data from reddit top Eg
 * **Docker & Docker Compose** *for Infrastructure*
 
 ## Work Flow
+![work flow diagram](work_flow_diagram.png)
 
 ### 1. Smart Extraction
 #### Unlike traditional scrapers, this pipeline uses a State-Driven extraction logic:
