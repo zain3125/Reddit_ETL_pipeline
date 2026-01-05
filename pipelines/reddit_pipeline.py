@@ -1,6 +1,6 @@
 from airflow.exceptions import AirflowException
 import logging
-from utils.constants import CLIENT_ID, SECRET, USER_AGENT, MONGO_DB, RAW_COLLECTION
+from utils.constants import CLIENT_ID, SECRET, USER_AGENT, MONGO_DB, RAW_COLLECTION, CLEAN_COLLECTION
 from utils.connections import connect_to_reddit
 from elts.reddit_elt import (
     extract_reddit_posts, load_posts_to_mongo, 
@@ -90,7 +90,7 @@ def run_transform_pipeline():
             client, 
             MONGO_DB, 
             'merged_reddit_data',
-            'final_analytics'
+            CLEAN_COLLECTION
         )
         logging.info("Remove not needed fields step completed successfully.")
     except Exception as e:
