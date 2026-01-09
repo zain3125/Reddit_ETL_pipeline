@@ -66,7 +66,6 @@ aggregate_task = PythonOperator(
 transform_task = PythonOperator(
     task_id='transform_and_clean_data',
     python_callable=run_transform_pipeline,
-    provide_context=True,
     dag=dag,
 )
 
