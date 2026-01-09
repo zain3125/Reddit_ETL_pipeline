@@ -51,8 +51,8 @@ def get_active_post_ids(mongo_client, db_name, collection_name):
     query = {
         "created_utc": {"$gt": current_ts - (30 * 24 * 60 * 60)}, # Posts from last 30 days
         "$or": [
-            {"last_sync_utc": {"$lt": current_ts - (24 * 60 * 60)}}, # Not synced in 24h
-            {"last_sync_utc": {"$exists": False}}
+            {"last_sync_comments_utc": {"$lt": current_ts - (24 * 60 * 60)}}, # Not synced in 24h
+            {"last_sync_comments_utc": {"$exists": False}}
         ]
     }
     return [post['id'] for post in db[collection_name].find(query, {"id": 1})]
@@ -119,7 +119,7 @@ def load_comments_to_mongo(mongo_client, db_name, collection_name, comments, pos
     if post_ids_updated:
         db[RAW_COLLECTION].update_many(
             {"id": {"$in": post_ids_updated}},
-            {"$set": {"last_sync_utc": now.timestamp()}}
+            {"$set": {"last_sync_utc_comments": datetime.utcnow().timestamp()}}
         )
 
 def merge_posts_and_comments_in_mongo():
