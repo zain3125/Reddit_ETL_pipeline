@@ -105,3 +105,5 @@ If you want to test something and delete `MongDB` sync from `Shell` or `Compass`
 ```
 db.raw_posts.updateMany({}, { $unset: { last_comments_sync_utc: "" } })
 ```
+## Find Bugs?
+Contributions are welcome! Please open issues or submit pull requests for improvements or bug fixes.
