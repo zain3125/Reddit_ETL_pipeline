@@ -66,14 +66,24 @@ reddit_secret_key = <your secret key>
 reddit_client_id = <your clieng id>
 user_agent = <your user agent>
 ```
-#### Step 2: Container Orchestration
+#### Step 2: Create Virtual Environment & Install Dependencies
+This step is useful for local development, testing, or understanding dependencies
+before running the pipeline using Docker.
+```
+python3 -m venv venv
+source venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+````
+
+#### Step 3: Container Orchestration
 Run the following command to build the custom Airflow image (optimized with Layer Caching) and start all services:
 
 ```
 docker-compose up -d --build
 ```
 
-#### Step 3: Pipeline Monitoring
+#### Step 4: Pipeline Monitoring
 
 * Access the Airflow Webserver at [Airflow UI](http://localhost:8080).
 
@@ -93,5 +103,5 @@ password: airflow
 ## Note ⚠️
 If you want to test something and delete `MongDB` sync from `Shell` or `Compass` Do: 
 ```
-db.raw_posts.updateMany({}, { $unset: { last_sync_utc: "" } })
+db.raw_posts.updateMany({}, { $unset: { last_comments_sync_utc: "" } })
 ```
