@@ -69,6 +69,9 @@ transform_task = PythonOperator(
     dag=dag,
 )
 
-extract_posts_task >> mongo_posts_task
-extract_comments_task >> mongo_comments_task
+extract_posts_task \
+>> mongo_posts_task \
+>> extract_comments_task \
+>> mongo_comments_task
+
 [mongo_posts_task, mongo_comments_task] >> aggregate_task >> transform_task

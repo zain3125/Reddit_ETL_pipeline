@@ -49,19 +49,20 @@ def get_active_post_ids(mongo_client, db_name, collection_name):
     db = mongo_client[db_name]
     current_ts = datetime.utcnow().timestamp()
     query = {
-        "created_utc": {"$gt": current_ts - (30 * 24 * 60 * 60)}, # Posts from last 30 days
+        "created_utc": {"$gt": current_ts - (2592000)}, # Posts from last 30 days (30 * 24 * 60 * 60) = 2592000
         "$or": [
-            {"last_sync_comments_utc": {"$lt": current_ts - (24 * 60 * 60)}}, # Not synced in 24h
-            {"last_sync_comments_utc": {"$exists": False}}
+            {"last_comments_sync_utc": {"$lt": current_ts - (86400)}}, # Not synced in 24h (24 * 60 * 60) = 86400
+            {"last_comments_sync_utc": {"$exists": False}}
         ]
     }
-    return [post['id'] for post in db[collection_name].find(query, {"id": 1})]
+    return [post['_id'] for post in db[collection_name].find(query, {"_id": 1})]
 
 def extract_comments_for_ids(reddit_instance, post_ids):
     all_comments_tree = []
     for post_id in post_ids:
         try:
-            submission = reddit_instance.submission(id=post_id)
+            reddit_id = post_id.replace("t3_", "")
+            submission = reddit_instance.submission(id=reddit_id)
             submission.comments.replace_more(limit=0)
             for top_level_comment in submission.comments:
                 comment_data = process_comment(top_level_comment)
@@ -81,7 +82,6 @@ def load_posts_to_mongo(mongo_client, db_name, collection_name, posts):
 
     for post in posts:
         post["ingested_at"] = now
-        post["last_sync_utc"] = sync_ts
 
         operations.append(
             UpdateOne(
@@ -118,8 +118,8 @@ def load_comments_to_mongo(mongo_client, db_name, collection_name, comments, pos
     # Update last_sync_utc for the posts we just updated [Added]
     if post_ids_updated:
         db[RAW_COLLECTION].update_many(
-            {"id": {"$in": post_ids_updated}},
-            {"$set": {"last_sync_utc_comments": datetime.utcnow().timestamp()}}
+            {"_id": {"$in": post_ids_updated}},
+            {"$set": {"last_comments_sync_utc": datetime.utcnow().timestamp()}}
         )
 
 def merge_posts_and_comments_in_mongo():
@@ -130,7 +130,7 @@ def merge_posts_and_comments_in_mongo():
         {
             "$lookup": {
                 "from": "raw_comments",
-                "localField": "id",
+                "localField": "_id",
                 "foreignField": "post_id",
                 "as": "comments_list"
             }
